@@ -51,9 +51,9 @@ class ReflexAgent(Agent):
         chosenIndex = random.choice(bestIndices)  # Pick randomly among the best
 
         "Add more of your code here if you want to"
-        t= list(zip(legalMoves, [round(i,2) for i in scores]))
-        print(t, t[chosenIndex])
-        # print("===============")
+        t = list(zip(legalMoves, [round(i, 2) for i in scores]))
+        print(t)
+        print("===============")
         # input()
 
         return legalMoves[chosenIndex]
@@ -81,70 +81,49 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        # if action==Directions.STOP:
-        #     return float('-inf')
-
-        # 푸드리스트를 돌면서 일단 맨해튼거리를 찾고
-        # 맨허튼거리가 최소인 푸드위치 반환
-        # def getClosestFood() -> tuple[tuple[int, int], tuple[float, float]]:
-        #     minDiffX, minDiffY = (float("inf"), float("inf"))
-        #     curX, curY = newPos
-        #     closestFoodPosition = (0, 0)
-        #     for foodX, foodY in newFood.asList():
-
-        #         diffX, diffY = (abs(curX - foodX), abs(curY - foodY))
-
-        #         if diffX + diffY < minDiffX + minDiffY:
-        #             minDiffX = diffX
-        #             minDiffY = diffY
-        #             closestFoodPosition = (foodX, foodY)
-
-        #         print(newPos, (foodX, foodY), (diffX, diffY), (minDiffX, minDiffY))
-
-        #     return (closestFoodPosition, (minDiffX, minDiffY))
-
-        # closestFoodPosition, (diffX, diffY) = getClosestFood()
-
-        # print(
-        #     action,
-        #     "newpos",
-        #     newPos,
-        #     "closestfood",
-        #     closestFoodPosition,
-        #     "diff",
-        #     (diffX, diffY),
-        #     end=" ",
-        # )
-
-        # diffWeight = 0
-        # if action in (Directions.EAST, Directions.WEST):
-        #     diffWeight = float("inf") if diffX == 0 else 1 / diffX
-        # elif action in (Directions.SOUTH, Directions.NORTH):
-        #     diffWeight = float("inf") if diffY == 0 else 1 / diffY
-        # else:
-        #     diffWeight = float("-inf")
-
-        # print(diffWeight)
-        # input()
-
-        # return diffWeight
-        NUM_FOODS_WEIGHT=9999
+        NUM_FOODS_WEIGHT = 9999
+        NO_SELECT=-999999
         
+
         if successorGameState.isWin():
-            return float('inf')
+            return float("inf")
         elif successorGameState.isLose():
-            return float('-inf')
+            return float("-inf")
         elif action==Directions.STOP:
             return float('-inf')
 
-        
         # 고스트와 멀어지는 방향으로 가중치 설정
+        # 전부다 -inf면 어떻게 할껀데,
+        # 멀어지는 방향에 가중치를 두어야징..
         # print(newGhostStates[0])
         # print(newGhostStates)
-        ghostDiff=manhattanDistance(newPos,newGhostStates[0].getPosition())
-        # print('ghostDiff', ghostDiff)
-        if ghostDiff<=2:
-            return float('-inf')
+        # ghostPos=newGhostStates[0].getPosition()
+        # ghostDist = manhattanDistance(newPos, ghostPos)
+
+        for ghostState in newGhostStates:
+            ghostPos=ghostState.getPosition()
+            if manhattanDistance(newPos, ghostPos) <= 2:
+                return NO_SELECT
+
+        # if ghostDist <= 2:
+        #     curX, curY = newPos
+        #     ghostX, ghostY = newGhostStates[0].getPosition()
+        #     if (
+        #         (action == Directions.WEST and curX > ghostX)
+        #         or (action == Directions.EAST and ghostX > curX)
+        #         or (action == Directions.NORTH and ghostY > curY)
+        #         or (action == Directions.SOUTH and curY > ghostY)
+        #     ):
+        #         return float("-inf")
+
+        # 2칸 이내에서는 가까워지는 방향은 -inf
+        # 멀어지는 방향으로는 가중치 증가
+
+
+        
+        ghostDiff=0
+
+        # 벽도 해결해야됨..
 
         def getClosestFood() -> tuple[tuple[float, float], float]:
             minDist = float("inf")
@@ -160,20 +139,20 @@ class ReflexAgent(Agent):
 
         closestFood, minDist = getClosestFood()
 
-        closestFoodDiff = 1/minDist
-        numFoods=1/len(newFood.asList())
-        
+        closestFoodDiff = 1 / minDist
+        numFoods = 1 / len(newFood.asList())
+
         # if action in (Directions.EAST, Directions.WEST):
         #     pass
         # elif action in (Directions.SOUTH, Directions.NORTH):
         #     pass
         # else:
         #     diffWeight = float("-inf")
-        linearF=closestFoodDiff+NUM_FOODS_WEIGHT*numFoods
+        linearF =closestFoodDiff + NUM_FOODS_WEIGHT * numFoods
         # print(action, closestFoodDiff, numFoods, linearF)
         # input()
 
-        return linearF
+        # return linearF
         ####################################################
         # 해당 푸드위치로 갈 수 있는 액션에 가중치를 크게 둠
 
@@ -192,7 +171,10 @@ class ReflexAgent(Agent):
         # 4. 그리고 대각선에서 죽을 수 있는 확률
         #
 
-        return successorGameState.getScore()
+        # astar를 쓴 경로로 가는 방향에 가중치 up
+        
+
+        return linearF
 
 
 def scoreEvaluationFunction(currentGameState: GameState):
@@ -256,7 +238,9 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # print(self.evaluationFunction())
+        # util.raiseNotDefined()
+        return Directions.EAST
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
