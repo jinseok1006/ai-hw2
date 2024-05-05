@@ -401,7 +401,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
     def getAction(self, gameState: GameState):
         numAgents = gameState.getNumAgents()
-        print(f"maxDepth: {self.depth} numAgents:{numAgents}")
+        # print(f"maxDepth: {self.depth} numAgents:{numAgents}")
 
         def getNextAgent(agentIndex):
             return (agentIndex + 1) % numAgents
@@ -428,6 +428,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
             values, actions = zip(*evaluation)
 
+            # print(*zip(actions, evaluation))
+
             if agentIndex == 0:
                 maxValue = max(values)
                 maxValueIndex = values.index(maxValue)
@@ -441,6 +443,10 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
         # return Directions.WEST
         maxValue, maxAction = minimax(gameState, 0, 0)
+
+
+        # print((maxValue, maxAction))
+
         return maxAction
 
 
@@ -452,7 +458,147 @@ def betterEvaluationFunction(currentGameState: GameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    "현재 상태에 대한 가치를 반환"
+    # successorGameState = currentGameState.generatePacmanSuccessor(action)
+    # newPos = successorGameState.getPacmanPosition()
+    # newFood = successorGameState.getFood()
+    # newGhostStates = successorGameState.getGhostStates()
+    # newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+
+    "*** YOUR CODE HERE ***"
+
+    # print(currentGameState.isWin())
+
+    if currentGameState.isWin():
+        return float('inf')
+    if currentGameState.isLose():
+        return float("-inf")
+
+    NO_SELECT = -999999
+
+    ghostPositions = currentGameState.getGhostPositions()
+    pacmanPosition = currentGameState.getPacmanPosition()
+    capsulePositions = currentGameState.getCapsules()
+    foodList = currentGameState.getFood().asList()
+    numFoods = len(foodList)
+
+    
+
+    # if(numFoods == 0):
+    #     return 30
+
+    
+
+    # 고스트 상태도 잇네
+    ghostStates = currentGameState.getGhostStates()
+    ghostScared = min([ghostState.scaredTimer for ghostState in ghostStates])
+
+    # 고스트와의 거리 2초과 유도
+    pacmanGhostDistances = [
+        manhattanDistance(ghostPosition, pacmanPosition)
+        for ghostPosition in ghostPositions
+    ]
+
+    # 고스트와의 거리 2이내 여도 멀어지는쪽이 더좋게
+    pacmanGhostDistance = min(pacmanGhostDistances)
+
+    if pacmanGhostDistance < 2:
+        return NO_SELECT
+
+    # 푸드와의 최소거리
+    foodDistances = [
+        manhattanDistance(pacmanPosition, foodPosition) for foodPosition in foodList
+    ]
+    foodDistances = min(foodDistances)
+
+    
+
+    numCapsule = len(capsulePositions)
+
+    # 캡슐과의 거리
+    capsuleDistance = (
+        0
+        if numCapsule == 0
+        else min(
+            [
+                manhattanDistance(pacmanPosition, capsulePosition)
+                for capsulePosition in capsulePositions
+            ]
+        )
+    )
+
+    # 캡슐을 먹은 순간
+    if ghostScared > 0:
+        pacmanGhostDistance = -pacmanGhostDistance
+
+    # value= currentGameState.getScore()+pacmanGhostDistance+
+    features = [
+        [150, currentGameState.getScore()],
+        [100, pacmanGhostDistance],
+        [2000, 1 / foodDistances],
+        [-100, numFoods],
+        [-300, numCapsule],
+        [200, ghostScared],
+        [-50, capsuleDistance],
+    ]
+
+    scoreList = [weight * feature for weight, feature in features]
+    # print(scoreList, sum(scoreList))
+
+    # score=currentGameState.getScore() + (pacmanGhostDistance) + (1/foodDistances) + (1/numFoods)
+
+    return sum(scoreList)
+
+    # for ghostState in newGhostStates:
+    #     ghostPos = ghostState.getPosition()
+    #     if manhattanDistance(newPos, ghostPos) <= 2:
+    #         return NO_SELECT
+
+    # if ghostDist <= 2:
+    #     curX, curY = newPos
+    #     ghostX, ghostY = newGhostStates[0].getPosition()
+    #     if (
+    #         (action == Directions.WEST and curX > ghostX)
+    #         or (action == Directions.EAST and ghostX > curX)
+    #         or (action == Directions.NORTH and ghostY > curY)
+    #         or (action == Directions.SOUTH and curY > ghostY)
+    #     ):
+    #         return float("-inf")
+
+    # 2칸 이내에서는 가까워지는 방향은 -inf
+    # 멀어지는 방향으로는 가중치 증가
+
+    # ghostDiff = 0
+
+    # 벽도 해결해야됨..
+
+    # def getClosestFood() -> tuple[tuple[float, float], float]:
+    #     minDist = float("inf")
+    #     closestFoodPos = (0, 0)
+    #     for foodPos in newFood.asList():
+    #         dist = manhattanDistance(newPos, foodPos)
+    #         if dist < minDist:
+    #             minDist = dist
+    #             closestFoodPos = foodPos
+    #         # print(newPos, foodPos, dist, minDist, closestFoodPos)
+
+    #     return (closestFoodPos, minDist)
+
+    # closestFood, minDist = getClosestFood()
+
+    # closestFoodDiff = 1 / minDist
+    # numFoods = 1 / len(newFood.asList())
+
+    # # if action in (Directions.EAST, Directions.WEST):
+    # #     pass
+    # # elif action in (Directions.SOUTH, Directions.NORTH):
+    # #     pass
+    # # else:
+    # #     diffWeight = float("-inf")
+    # linearF = closestFoodDiff + NUM_FOODS_WEIGHT * numFoods
+
+    # return linearF
+    return currentGameState.getScore()
 
 
 # Abbreviation
