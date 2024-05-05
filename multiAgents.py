@@ -300,38 +300,22 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         def callNextAgent(
             successor: GameState, currentAgent, nextAgent, nextDepth, alpha, beta
         ):
-
             if nextAgent == 0:
                 return maxAgent(successor, nextAgent, nextDepth, alpha, beta)
             else:
                 return minAgent(successor, nextAgent, nextDepth, alpha, beta)
 
-            # if currentAgent == 0 and nextAgent == 0:  # max->max
-            #     return maxAgent(successor, nextAgent, nextDepth, alpha, beta)
-            # elif currentAgent == 0 and nextAgent != 0:  # max->min
-            #     return minAgent(successor, nextAgent, nextDepth, alpha, beta)
-            # elif currentAgent != 0 and nextAgent == 0:  # min->max
-            #     return maxAgent(successor, nextAgent, nextDepth, alpha, beta)
-            # else:  # min->min
-            #     return minAgent(successor, nextAgent, nextDepth, alpha, beta)
-
         # maxAgent구현중
         def maxAgent(state: GameState, agentIndex, depth, alpha, beta):
-            # print(f"agentIndex: {agentIndex} currentDepth:{depth}")
             if depth == self.depth or state.isLose() or state.isWin():
                 ev = self.evaluationFunction(state)
-                # print(f"max term: {ev}")
                 return (ev, "")
 
-            # alpha = (float("-inf"), "")  # (value, action)
-            v = (float("-inf"), "")
+            v = ALPHA_INIT_VALUE
             betaValue, betaAction = beta  # +inf
             legalActions = state.getLegalActions(agentIndex)
 
             for action in legalActions:
-                # print(
-                #     f"agent:{agentIndex}, action:{action} currentDepth:{depth}, alpha:{alpha}, beta:{beta}"
-                # )
                 # 생성하고
                 successor = state.generateSuccessor(agentIndex, action)
 
@@ -345,7 +329,6 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
                 v = max(v, vaTuple, key=lambda x: x[0])
                 # 프루닝 조건
-
                 if (
                     value > betaValue
                 ):  # 기본값으로 beta가 +inf 이기 때문에 프루닝 될 수 없음.
@@ -353,8 +336,6 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
                 # 프루닝이 안된경우
                 # 다음도 봐야하면 알파값 업데이트
-                # alpha = max(alpha, v, key=lambda x: x[0])
-                # alphaValue, alphaAction=alpha
                 alpha = max(
                     alpha, vaTuple, key=lambda x: x[0]
                 )  # 항상 최신 액션을 따르기만 하면 문제는 없음
@@ -371,18 +352,14 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         def minAgent(state: GameState, agentIndex, depth, alpha, beta):
             if depth == self.depth or state.isLose() or state.isWin():
                 ev = self.evaluationFunction(state)
-                # print(f"min term: {ev}")
+
                 return (ev, "")
 
-            # beta = (float("inf"), "")  # (value, action)
-            v = (float("inf"), "")
+            v = BETA_INIT_VALUE
             alphaValue, _ = alpha
             legalActions = state.getLegalActions(agentIndex)
 
             for action in legalActions:
-                # print(
-                #     f"agent:{agentIndex}, action:{action} currentDepth:{depth}, alpha:{alpha}, beta:{beta}"
-                # )
                 # 생성하고
                 successor = state.generateSuccessor(agentIndex, action)
 
@@ -395,45 +372,24 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 vaTuple = (value, action)
                 v = min(v, vaTuple, key=lambda x: x[0])
 
-
                 # 프루닝 조건
                 if value < alphaValue:
                     return vaTuple
 
                 # 프루닝이 안된경우
                 # 다음도 봐야하면 알파값 업데이트
-                # alpha = max(alpha, v, key=lambda x: x[0])
-                # alphaValue, alphaAction=alpha
                 beta = min(
                     beta, vaTuple, key=lambda x: x[0]
                 )  # 항상 최신 액션을 따르기만 하면 문제는 없음
-
                 # 최신액션을 따르는게 아니라 가장 최소 액션을 따라야함
                 # v가 큰경우 v와 와 현재 action,
                 # alpha가 큰경우 alpha와 alpha action
 
             return v
 
-        def minimax(state: GameState, agentIndex: int, depth: int):
-            # 현재 에이전트 요청 -> agentIndex
-
-            # 에이전트에 따른 max,min 에이전트 호출
-            value, action = (
-                maxAgent(
-                    state, agentIndex, depth, (float("-inf"), ""), (float("inf"), "")
-                )
-                if agentIndex == 0
-                else minAgent(
-                    state, agentIndex, depth, (float("-inf"), ""), (float("-inf"), "")
-                )
-            )
-            # 상태넘겨주고 알아서 프루닝하도록 요청
-
-            # 어차피 max호출할텐데 max로 뽑아줄 필요가 전혀 없지
-
-            return (value, action)
-
-        maxValue, maxAction = minimax(gameState, 0, 0)
+        maxValue, maxAction = maxAgent(
+            gameState, 0, 0, ALPHA_INIT_VALUE, BETA_INIT_VALUE
+        )
 
         return maxAction
 
@@ -444,14 +400,48 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
     """
 
     def getAction(self, gameState: GameState):
-        """
-        Returns the expectimax action using self.depth and self.evaluationFunction
+        numAgents = gameState.getNumAgents()
+        print(f"maxDepth: {self.depth} numAgents:{numAgents}")
 
-        All ghosts should be modeled as choosing uniformly at random from their
-        legal moves.
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def getNextAgent(agentIndex):
+            return (agentIndex + 1) % numAgents
+
+        def exp(values):
+            return sum(values) / len(values)
+
+        def minimax(state: GameState, agentIndex: int, depth: int):
+            if depth == self.depth or state.isWin() or state.isLose():
+                # print(f"call eval function depth: {self.depth}")
+                return (self.evaluationFunction(state), "")
+
+            legalActions = state.getLegalActions(agentIndex)
+            successors = [
+                state.generateSuccessor(agentIndex, action) for action in legalActions
+            ]
+
+            nextAgent = getNextAgent(agentIndex)
+            nextDepth = depth + 1 if nextAgent == 0 else depth
+
+            evaluation = [
+                minimax(successor, nextAgent, nextDepth) for successor in successors
+            ]
+
+            values, actions = zip(*evaluation)
+
+            if agentIndex == 0:
+                maxValue = max(values)
+                maxValueIndex = values.index(maxValue)
+                maxAction = legalActions[maxValueIndex]
+                return (maxValue, maxAction)
+            else:
+                expValue = exp(values)
+                return (expValue, "")
+
+        # 재귀적으로 구성하라...?
+
+        # return Directions.WEST
+        maxValue, maxAction = minimax(gameState, 0, 0)
+        return maxAction
 
 
 def betterEvaluationFunction(currentGameState: GameState):
